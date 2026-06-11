@@ -1,4 +1,4 @@
-const { By, until } = require('selenium-webdriver');
+﻿const { By, until } = require('selenium-webdriver');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -39,24 +39,66 @@ class LoginPage {
   }
 
   async getPasswordFieldType() {
-    const el = await this.driver.findElement(By.css('div.relative input'));
+    const el   = await this.driver.findElement(By.css('div.relative input'));
     const type = await el.getAttribute('type');
     console.log(`    [LoginPage] getPasswordFieldType → "${type}"`);
     return type;
   }
 
-  async getErrorText() {
+  // ─── AlertModal helpers ──────────────────────────────────────────────────
+
+  async isAlertVisible() {
     try {
-      await this.driver.wait(until.elementLocated(By.css('div.bg-red-50')), 4000);
-      const el   = await this.driver.findElement(By.css('div.bg-red-50'));
+      const btns = await this.driver.findElements(By.css('div.fixed.inset-0.z-50 button'));
+      for (const btn of btns) {
+        const txt = await btn.getText();
+        if (txt.trim() === 'OK') {
+          console.log('    [LoginPage] isAlertVisible → true');
+          return true;
+        }
+      }
+      console.log('    [LoginPage] isAlertVisible → false');
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  async getAlertTitle() {
+    try {
+      await this.driver.wait(until.elementLocated(By.css('h2.text-center')), 5000);
+      const el   = await this.driver.findElement(By.css('h2.text-center'));
       const text = await el.getText();
-      console.log(`    [LoginPage] getErrorText → "${text}"`);
+      console.log(`    [LoginPage] getAlertTitle → "${text}"`);
       return text;
     } catch {
-      console.log('    [LoginPage] getErrorText → null (tidak ditemukan)');
+      console.log('    [LoginPage] getAlertTitle → null (tidak ditemukan)');
       return null;
     }
   }
+
+  async getAlertMessage() {
+    try {
+      const el   = await this.driver.findElement(By.css('p.text-center.text-sm.text-gray-500'));
+      const text = await el.getText();
+      console.log(`    [LoginPage] getAlertMessage → "${text}"`);
+      return text;
+    } catch {
+      return null;
+    }
+  }
+
+  async closeAlert() {
+    console.log('    [LoginPage] closeAlert: klik tombol OK');
+    await this.driver.executeScript(`
+      const btns = Array.from(document.querySelectorAll('div.fixed.inset-0.z-50 button'));
+      const btn  = btns.find(b => b.textContent.trim() === 'OK');
+      if (btn) btn.click();
+    `);
+    await this.driver.sleep(300);
+  }
+
+  // ─── Misc ───────────────────────────────────────────────────────────────
 
   async isDemoBoxVisible() {
     try {
