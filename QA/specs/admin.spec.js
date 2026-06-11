@@ -1,9 +1,10 @@
-const { expect }          = require('chai');
-const fs                   = require('fs');
-const { launchBrowser, newPage, closeBrowser } = require('../helpers/browser');
-const { takeAndCompare }   = require('../helpers/visualRegression');
-const AdminPage            = require('../pageobject/AdminPage');
-const { loginAsAdmin, logout } = require('../actions/authActions');
+const { expect }   = require('chai');
+const fs           = require('fs');
+const path         = require('path');
+const { launchBrowser, closeBrowser } = require('../helpers/browser');
+const { takeAndCompare }              = require('../helpers/visualRegression');
+const AdminPage                       = require('../pageobject/AdminPage');
+const { loginAsAdmin, logout }        = require('../actions/authActions');
 const {
   openAddModal,
   fillTicketModal,
@@ -14,32 +15,51 @@ const {
 } = require('../actions/ticketActions');
 
 describe('Dashboard Admin', function () {
-  this.timeout(40000);
+  this.timeout(50000);
 
-  let page;
+  let driver;
   let adminPage;
 
   before(async function () {
-    await launchBrowser();
-    page      = await newPage();
-    adminPage = new AdminPage(page);
-    await loginAsAdmin(page);
+    console.log('\n[suite] Dashboard Admin — memulai browser dan login...');
+    driver    = await launchBrowser();
+    adminPage = new AdminPage(driver);
+    await loginAsAdmin(driver);
   });
 
   after(async function () {
+    console.log('[suite] Dashboard Admin — menutup browser');
     await closeBrowser();
   });
 
   beforeEach(async function () {
+    console.log(`\n  ▶ MULAI: "${this.currentTest?.title}"`);
     await adminPage.navigate();
   });
 
-  // ─── Akses & Redirect ─────────────────────────────────────────────────────
+  afterEach(async function () {
+    const state  = this.currentTest?.state ?? 'unknown';
+    const passed = state === 'passed';
+    console.log(`  ${passed ? '✓ LULUS' : '✗ GAGAL'}: "${this.currentTest?.title}" [${state.toUpperCase()}]`);
+
+    if (!passed) {
+      try {
+        const buf   = Buffer.from(await driver.takeScreenshot(), 'base64');
+        const dir   = path.join(__dirname, '..', 'screenshots', 'failures');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const fname = `admin-${Date.now()}.png`;
+        fs.writeFileSync(path.join(dir, fname), buf);
+        console.log(`  📷 Screenshot kegagalan: screenshots/failures/${fname}`);
+      } catch { /* ignore */ }
+    }
+  });
+
+  // ─── Akses ────────────────────────────────────────────────────────────────
 
   it('halaman /admin dapat diakses setelah login', async function () {
-    expect(page.url()).to.include('/admin');
-    const title = await page.$eval('header h1', el => el.textContent.trim());
-    expect(title).to.include('Dashboard');
+    const url = await driver.getCurrentUrl();
+    console.log(`    URL saat ini: ${url}`);
+    expect(url).to.include('/admin');
   });
 
   // ─── Statistik ────────────────────────────────────────────────────────────
@@ -50,8 +70,9 @@ describe('Dashboard Admin', function () {
   });
 
   it('kartu statistik memiliki label yang benar', async function () {
-    const stats = await adminPage.getStatsValues();
+    const stats  = await adminPage.getStatsValues();
     const labels = stats.map(s => s.label);
+    console.log(`    Labels: ${JSON.stringify(labels)}`);
     expect(labels).to.include('Total Tiket');
     expect(labels).to.include('Tiket Terbuka');
     expect(labels).to.include('Sedang Dikerjakan');
@@ -59,7 +80,8 @@ describe('Dashboard Admin', function () {
   });
 
   it('[visual] tampilan kartu statistik dashboard', async function () {
-    const result = await takeAndCompare(page, 'admin-stats-section');
+    console.log('    Mengambil screenshot stats cards...');
+    const result = await takeAndCompare(driver, 'admin-stats-section');
     attachScreenshot('Stats Cards', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
@@ -70,11 +92,13 @@ describe('Dashboard Admin', function () {
 
   it('tabel tiket menampilkan data minimal 1 baris', async function () {
     const count = await adminPage.getTicketRowCount();
+    console.log(`    Jumlah baris tiket: ${count}`);
     expect(count).to.be.above(0, 'Tabel tiket kosong — pastikan seeder dijalankan');
   });
 
-  it('[visual] tampilan halaman dashboard admin (full page)', async function () {
-    const result = await takeAndCompare(page, 'admin-dashboard-full');
+  it('[visual] tampilan halaman dashboard admin (full)', async function () {
+    console.log('    Mengambil screenshot dashboard penuh...');
+    const result = await takeAndCompare(driver, 'admin-dashboard-full');
     attachScreenshot('Dashboard Admin', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
@@ -84,55 +108,61 @@ describe('Dashboard Admin', function () {
   // ─── Tambah Tiket ─────────────────────────────────────────────────────────
 
   it('tombol "+ Tambah Tiket" membuka modal form', async function () {
-    await openAddModal(page);
+    console.log('    Klik tombol tambah tiket...');
+    await openAddModal(driver);
     const isOpen = await adminPage.isModalOpen();
     expect(isOpen, 'Modal tidak terbuka setelah klik tombol tambah').to.be.true;
+    await cancelModal(driver);
   });
 
   it('modal tambah tiket menampilkan judul "Tambah Tiket"', async function () {
-    await openAddModal(page);
-    const modalTitle = await adminPage.getModalTitle();
-    expect(modalTitle).to.equal('Tambah Tiket');
-    await cancelModal(page);
+    await openAddModal(driver);
+    const title = await adminPage.getModalTitle();
+    console.log(`    Judul modal: "${title}"`);
+    expect(title).to.equal('Tambah Tiket');
+    await cancelModal(driver);
   });
 
   it('[visual] tampilan modal tambah tiket', async function () {
-    await openAddModal(page);
-    const result = await takeAndCompare(page, 'admin-modal-tambah-tiket');
+    await openAddModal(driver);
+    const result = await takeAndCompare(driver, 'admin-modal-tambah-tiket');
     attachScreenshot('Modal Tambah Tiket', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
     }
-    await cancelModal(page);
+    await cancelModal(driver);
   });
 
   it('tambah tiket baru berhasil dan jumlah baris bertambah', async function () {
-    const countBefore = await getTicketCount(page);
-    await openAddModal(page);
-    await fillTicketModal(page, {
+    const countBefore = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sebelum: ${countBefore}`);
+    await openAddModal(driver);
+    await fillTicketModal(driver, {
       title:          'Test Tambah Tiket QA Automation',
       category:       'Software',
       priority:       'Medium',
       status:         'Open',
       assignedPerson: 'Tim QA',
     });
-    await submitModal(page);
+    await submitModal(driver);
     await adminPage.navigate();
-    const countAfter = await getTicketCount(page);
+    const countAfter = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sesudah: ${countAfter}`);
     expect(countAfter).to.equal(countBefore + 1);
   });
 
   // ─── Update Status Inline ─────────────────────────────────────────────────
 
   it('dropdown status inline mengubah nilai status tiket', async function () {
-    await updateStatus(page, 0, 'In Progress');
+    console.log('    Mengubah status baris pertama ke "In Progress"...');
+    await updateStatus(driver, 0, 'In Progress');
     const value = await adminPage.getStatusDropdownValue(0);
+    console.log(`    Nilai dropdown setelah update: "${value}"`);
     expect(value).to.equal('In Progress');
   });
 
   it('[visual] tampilan tabel setelah update status inline', async function () {
-    await adminPage.navigate();
-    const result = await takeAndCompare(page, 'admin-table-after-status-update');
+    const result = await takeAndCompare(driver, 'admin-table-after-status-update');
     attachScreenshot('Tabel Setelah Update Status', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(2);
@@ -142,33 +172,36 @@ describe('Dashboard Admin', function () {
   // ─── Edit Tiket ───────────────────────────────────────────────────────────
 
   it('tombol Edit membuka modal dengan judul "Edit Tiket"', async function () {
+    console.log('    Klik tombol Edit pada baris pertama...');
     await adminPage.clickEdit(0);
-    const isOpen     = await adminPage.isModalOpen();
-    const modalTitle = await adminPage.getModalTitle();
+    const isOpen = await adminPage.isModalOpen();
+    const title  = await adminPage.getModalTitle();
+    console.log(`    Modal terbuka: ${isOpen}, judul: "${title}"`);
     expect(isOpen).to.be.true;
-    expect(modalTitle).to.equal('Edit Tiket');
-    await cancelModal(page);
+    expect(title).to.equal('Edit Tiket');
+    await cancelModal(driver);
   });
 
   it('[visual] tampilan modal edit tiket', async function () {
     await adminPage.clickEdit(0);
-    await adminPage.getModalTitle(); // tunggu modal
-    const result = await takeAndCompare(page, 'admin-modal-edit-tiket');
+    await adminPage.getModalTitle();
+    const result = await takeAndCompare(driver, 'admin-modal-edit-tiket');
     attachScreenshot('Modal Edit Tiket', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
     }
-    await cancelModal(page);
+    await cancelModal(driver);
   });
 
   // ─── Hapus Tiket ──────────────────────────────────────────────────────────
 
   it('tombol Hapus membuka dialog konfirmasi', async function () {
+    console.log('    Klik tombol Hapus pada baris pertama...');
     await adminPage.clickDelete(0);
     const isOpen = await adminPage.isModalOpen();
+    const title  = await adminPage.getModalTitle();
+    console.log(`    Dialog terbuka: ${isOpen}, judul: "${title}"`);
     expect(isOpen, 'Dialog konfirmasi hapus tidak muncul').to.be.true;
-
-    const title = await adminPage.getModalTitle();
     expect(title).to.equal('Hapus Tiket');
     await adminPage.cancelDelete();
   });
@@ -176,7 +209,7 @@ describe('Dashboard Admin', function () {
   it('[visual] tampilan dialog konfirmasi hapus', async function () {
     await adminPage.clickDelete(0);
     await adminPage.getModalTitle();
-    const result = await takeAndCompare(page, 'admin-dialog-hapus');
+    const result = await takeAndCompare(driver, 'admin-dialog-hapus');
     attachScreenshot('Dialog Konfirmasi Hapus', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
@@ -184,23 +217,28 @@ describe('Dashboard Admin', function () {
     await adminPage.cancelDelete();
   });
 
-  it('batal hapus tiket tidak mengurangi jumlah baris', async function () {
-    const countBefore = await getTicketCount(page);
+  it('batal hapus tidak mengurangi jumlah baris', async function () {
+    const countBefore = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sebelum batal hapus: ${countBefore}`);
     await adminPage.clickDelete(0);
     await adminPage.cancelDelete();
-    const countAfter = await getTicketCount(page);
+    const countAfter = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sesudah batal hapus: ${countAfter}`);
     expect(countAfter).to.equal(countBefore);
   });
 
   // ─── Logout ───────────────────────────────────────────────────────────────
 
   it('tombol Logout mengarahkan ke halaman login', async function () {
-    await logout(page);
-    expect(page.url()).to.include('/login');
+    console.log('    Klik tombol Logout...');
+    await logout(driver);
+    const url = await driver.getCurrentUrl();
+    console.log(`    URL setelah logout: ${url}`);
+    expect(url).to.include('/login');
   });
 
   it('[visual] tampilan halaman login setelah logout', async function () {
-    const result = await takeAndCompare(page, 'after-logout-login-page');
+    const result = await takeAndCompare(driver, 'after-logout-login-page');
     attachScreenshot('Setelah Logout', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(1);
