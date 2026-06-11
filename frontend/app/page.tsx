@@ -8,26 +8,26 @@ const CATEGORIES = ['Hardware', 'Software', 'Network', 'Access', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
 const statusColor: Record<string, string> = {
-  Open:          'bg-blue-100 text-blue-700',
+  Open: 'bg-blue-100 text-blue-700',
   'In Progress': 'bg-yellow-100 text-yellow-700',
-  Resolved:      'bg-green-100 text-green-700',
-  Closed:        'bg-gray-100 text-gray-600',
+  Resolved: 'bg-green-100 text-green-700',
+  Closed: 'bg-gray-100 text-gray-600',
 };
 
 const priorityColor: Record<string, string> = {
-  Low:      'bg-slate-100 text-slate-600',
-  Medium:   'bg-orange-100 text-orange-700',
-  High:     'bg-red-100 text-red-700',
+  Low: 'bg-slate-100 text-slate-600',
+  Medium: 'bg-orange-100 text-orange-700',
+  High: 'bg-red-100 text-red-700',
   Critical: 'bg-red-200 text-red-800 font-semibold',
 };
 
 const emptyForm = { requester_name: '', title: '', category: 'Hardware', priority: 'Low' };
 
 export default function UserPage() {
-  const [tickets,    setTickets]    = useState<Ticket[]>([]);
-  const [form,       setForm]       = useState(emptyForm);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted,  setSubmitted]  = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const loadTickets = useCallback(async () => {
     const data = await api.getTickets();
@@ -41,11 +41,11 @@ export default function UserPage() {
     setSubmitting(true);
     try {
       await api.createTicket({
-        title:          form.title,
+        title: form.title,
         requester_name: form.requester_name,
-        category:       form.category,
-        priority:       form.priority as 'Low' | 'Medium' | 'High' | 'Critical',
-        status:         'Open',
+        category: form.category,
+        priority: form.priority as 'Low' | 'Medium' | 'High' | 'Critical',
+        status: 'Open',
         assigned_person: 'Belum Ditugaskan',
       });
       setForm(emptyForm);
@@ -66,8 +66,6 @@ export default function UserPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
-
-        {/* Form Laporan */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-base font-semibold text-gray-800">Laporkan Masalah IT</h2>
           <p className="mb-5 text-sm text-gray-500">
@@ -133,7 +131,6 @@ export default function UserPage() {
           </form>
         </div>
 
-        {/* Tabel Status Tiket */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-base font-semibold text-gray-800">
             Status Tiket
@@ -181,7 +178,6 @@ export default function UserPage() {
             </div>
           )}
         </div>
-
       </main>
     </div>
   );
