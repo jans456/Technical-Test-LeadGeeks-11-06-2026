@@ -1,4 +1,5 @@
-frontend/CLAUDE.md
-frontend/AGENTS.md
+
 .DS_Store
 Thumbs.db
+QA/allure-results/
+QA/allure-report/

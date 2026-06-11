@@ -1,6 +1,9 @@
 node_modules/
-allure-results/
-allure-report/
-screenshots/actual/
-screenshots/diff/
 .env
+screenshots/actual/*
+!screenshots/actual/.gitkeep
+screenshots/diff/*
+!screenshots/diff/.gitkeep
+screenshots/failures/*
+!screenshots/failures/.gitkeep
+allure-report/
