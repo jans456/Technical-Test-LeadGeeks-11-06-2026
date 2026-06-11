@@ -7,6 +7,13 @@ import StatsCard from '@/components/StatsCard';
 import TicketTable from '@/components/TicketTable';
 import TicketModal from '@/components/TicketModal';
 import DeleteConfirm from '@/components/DeleteConfirm';
+import AlertModal from '@/components/AlertModal';
+
+interface AlertState {
+  type: 'success' | 'error';
+  title: string;
+  message: string;
+}
 
 export default function AdminPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -14,34 +21,70 @@ export default function AdminPage() {
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [alert, setAlert] = useState<AlertState | null>(null);
+
+  const showAlert = (type: AlertState['type'], title: string, message: string) =>
+    setAlert({ type, title, message });
 
   const loadData = useCallback(async () => {
-    const [t, s] = await Promise.all([api.getTickets(), api.getStats()]);
-    setTickets(t);
-    setStats(s);
+    try {
+      const [t, s] = await Promise.all([api.getTickets(), api.getStats()]);
+      setTickets(t);
+      setStats(s);
+    } catch {
+      showAlert('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data tiket. Periksa koneksi ke server.');
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleSave = async (data: TicketFormData) => {
-    if (editingTicket) {
-      await api.updateTicket(editingTicket.id, data);
-    } else {
-      await api.createTicket(data);
+    const isEdit = !!editingTicket;
+    try {
+      if (isEdit) {
+        await api.updateTicket(editingTicket.id, data);
+      } else {
+        await api.createTicket(data);
+      }
+      await loadData();
+      showAlert(
+        'success',
+        isEdit ? 'Tiket Diperbarui' : 'Tiket Ditambahkan',
+        isEdit
+          ? `Tiket "${data.title}" berhasil diperbarui.`
+          : `Tiket "${data.title}" berhasil ditambahkan.`
+      );
+    } catch {
+      showAlert(
+        'error',
+        isEdit ? 'Gagal Memperbarui Tiket' : 'Gagal Menambahkan Tiket',
+        'Terjadi kesalahan saat menyimpan tiket. Coba lagi atau hubungi administrator.'
+      );
     }
-    await loadData();
   };
 
   const handleStatusChange = async (ticket: Ticket, status: Status) => {
-    await api.updateTicket(ticket.id, { status });
-    await loadData();
+    try {
+      await api.updateTicket(ticket.id, { status });
+      await loadData();
+      showAlert('success', 'Status Diperbarui', `Status tiket "${ticket.title}" berhasil diubah ke "${status}".`);
+    } catch {
+      showAlert('error', 'Gagal Memperbarui Status', 'Terjadi kesalahan saat mengubah status tiket. Coba lagi.');
+    }
   };
 
   const handleDelete = async () => {
     if (!deletingTicket) return;
-    await api.deleteTicket(deletingTicket.id);
-    setDeletingTicket(null);
-    await loadData();
+    const title = deletingTicket.title;
+    try {
+      await api.deleteTicket(deletingTicket.id);
+      setDeletingTicket(null);
+      await loadData();
+      showAlert('success', 'Tiket Dihapus', `Tiket "${title}" berhasil dihapus.`);
+    } catch {
+      setDeletingTicket(null);
+      showAlert('error', 'Gagal Menghapus Tiket', 'Terjadi kesalahan saat menghapus tiket. Coba lagi.');
+    }
   };
 
   return (
@@ -86,6 +129,15 @@ export default function AdminPage() {
           ticket={deletingTicket}
           onCancel={() => setDeletingTicket(null)}
           onConfirm={handleDelete}
+        />
+      )}
+
+      {alert && (
+        <AlertModal
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onClose={() => setAlert(null)}
         />
       )}
     </div>
