@@ -1,52 +1,53 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { Ticket, TicketFormData } from '@/lib/types';
 
 const CATEGORIES = ['Hardware', 'Software', 'Network', 'Access', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
-const STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const STATUSES   = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
 interface Props {
   ticket?: Ticket | null;
   onClose: () => void;
-  onSave: (data: TicketFormData) => Promise<void>;
+  onSave:  (data: TicketFormData) => Promise<void>;
 }
 
 const empty: TicketFormData = {
-  title: '',
-  requester_name: null,
-  category: 'Hardware',
-  priority: 'Low',
-  status: 'Open',
+  title:           '',
+  requester_name:  null,
+  category:        'Hardware',
+  priority:        'Low',
+  status:          'Open',
   assigned_person: '',
 };
 
 export default function TicketModal({ ticket, onClose, onSave }: Props) {
-  const [form, setForm] = useState<TicketFormData>(empty);
+  const [form,   setForm]   = useState<TicketFormData>(empty);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (ticket) {
-      setForm({
-        title: ticket.title,
-        requester_name: ticket.requester_name,
-        category: ticket.category,
-        priority: ticket.priority,
-        status: ticket.status,
-        assigned_person: ticket.assigned_person,
-      });
-    } else {
-      setForm(empty);
-    }
+    setForm(ticket
+      ? {
+          title:           ticket.title,
+          requester_name:  ticket.requester_name,
+          category:        ticket.category,
+          priority:        ticket.priority,
+          status:          ticket.status,
+          assigned_person: ticket.assigned_person,
+        }
+      : empty
+    );
   }, [ticket]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setSaving(true);
     try {
       await onSave(form);
       onClose();
+    } catch {
+      // onSave threw (API error already shown via AlertModal) — keep modal open for retry
     } finally {
       setSaving(false);
     }
