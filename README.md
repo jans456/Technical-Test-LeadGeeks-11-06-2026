@@ -1,4 +1,4 @@
-# Dashboard Tiket IT Internal
+﻿# Dashboard Tiket IT Internal
 **PT Lead Geeks Indonesia**
 
 ---
@@ -7,7 +7,7 @@
 
 Aplikasi web untuk melacak dan mengelola tiket dukungan IT internal. Sistem memiliki dua sisi:
 
-- **Portal User** — karyawan dapat melaporkan masalah IT dan memantau status tiket
+- **Portal User** — karyawan dapat melaporkan masalah IT dan memantau status tiket tanpa login
 - **Dashboard Admin** — tim IT dapat mengelola seluruh tiket (tambah, edit, update status, hapus) dengan akses yang dilindungi login
 
 ---
@@ -21,37 +21,34 @@ Aplikasi web untuk melacak dan mengelola tiket dukungan IT internal. Sistem memi
 | Database | MySQL |
 | Styling | Tailwind CSS |
 | Autentikasi | Laravel Sanctum (token-based) |
+| QA Automation | Mocha + Selenium WebDriver + Allure + Pixelmatch |
 
 ---
 
 ## Fitur yang Diimplementasikan
 
 ### Autentikasi Admin
-- Login dengan email dan password
+- Login dengan validasi client-side (format email, panjang password) dan validasi API
 - Token disimpan di cookie (session 8 jam)
 - Halaman admin otomatis redirect ke login jika belum masuk
 - Tombol logout di navbar admin
 
 ### Manajemen Tiket (Admin)
-- Tambah tiket baru
+- Tambah tiket baru melalui modal form
 - Edit tiket yang sudah ada
-- Perbarui status tiket langsung dari tabel (tanpa membuka form edit)
-- Hapus tiket dengan konfirmasi
+- Perbarui status tiket langsung dari dropdown di tabel (tanpa form edit)
+- Hapus tiket dengan konfirmasi dialog
 - Lihat seluruh daftar tiket beserta nama pelapor
+
+### Feedback & Validasi (AlertModal)
+- Modal overlay terpusat untuk setiap aksi CRUD (sukses dan error)
+- Validasi login: email format, password minimal 6 karakter
+- Modal form tetap terbuka saat API gagal — pengguna dapat mencoba ulang
 
 ### Portal User (Publik)
 - Form laporan masalah IT (nama, judul, kategori, prioritas)
 - Tiket terkirim otomatis dengan status `Open`
 - Lihat daftar dan status semua tiket (read-only)
-
-### Field Tiket
-- Nama Pelapor
-- Judul Tiket
-- Kategori Masalah (Hardware, Software, Network, Access, Other)
-- Prioritas (Low, Medium, High, Critical)
-- Status (Open, In Progress, Resolved, Closed)
-- Penanggung Jawab
-- Tanggal Dibuat
 
 ### Dashboard Statistik
 - Total Tiket
@@ -84,18 +81,12 @@ cd it-ticket-dashboard
 
 ```bash
 cd backend
-
-# Install dependencies
 composer install
-
-# Salin file environment
 cp .env.example .env
-
-# Generate app key
 php artisan key:generate
 ```
 
-Edit file `.env` — sesuaikan konfigurasi database:
+Edit `.env` — sesuaikan konfigurasi database:
 
 ```env
 DB_CONNECTION=mysql
@@ -107,13 +98,8 @@ DB_PASSWORD=
 ```
 
 ```bash
-# Buat database di MySQL terlebih dahulu, lalu jalankan migration
 php artisan migrate
-
-# Isi data sampel dan akun admin
 php artisan db:seed
-
-# Jalankan server backend
 php artisan serve
 ```
 
@@ -123,19 +109,16 @@ Backend berjalan di: `http://localhost:8000`
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
 ```
 
-Pastikan isi `.env.local`:
+Buat file `.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
 ```bash
-# Jalankan server frontend
 npm run dev
 ```
 
@@ -176,22 +159,37 @@ it-ticket-dashboard/
 │   │       └── TicketSeeder.php
 │   └── routes/api.php
 │
-└── frontend/                         # Next.js
-    ├── proxy.ts                      # Proteksi route /admin
-    ├── app/
-    │   ├── page.tsx                  # Portal User (publik)
-    │   ├── admin/page.tsx            # Dashboard Admin (perlu login)
-    │   └── login/page.tsx            # Halaman Login
-    ├── components/
-    │   ├── Navbar.tsx
-    │   ├── StatsCard.tsx
-    │   ├── TicketTable.tsx
-    │   ├── TicketModal.tsx
-    │   └── DeleteConfirm.tsx
-    └── lib/
-        ├── api.ts
-        ├── auth.ts
-        └── types.ts
+├── frontend/                         # Next.js
+│   ├── middleware.ts                 # Proteksi route /admin
+│   ├── app/
+│   │   ├── layout.tsx               # Root layout (Navbar global)
+│   │   ├── page.tsx                 # Portal User (publik)
+│   │   ├── admin/page.tsx           # Dashboard Admin (perlu login)
+│   │   └── login/page.tsx           # Halaman Login
+│   ├── components/
+│   │   ├── Navbar.tsx
+│   │   ├── StatsCard.tsx
+│   │   ├── TicketTable.tsx
+│   │   ├── TicketModal.tsx
+│   │   ├── DeleteConfirm.tsx
+│   │   └── AlertModal.tsx           # Modal sukses/error untuk semua aksi
+│   └── lib/
+│       ├── api.ts
+│       ├── auth.ts
+│       └── types.ts
+│
+├── QA/                               # QA Automation
+│   ├── specs/                        # 48 test cases (Mocha + Selenium)
+│   ├── pageobject/                   # Page Object Model
+│   ├── actions/                      # High-level test actions
+│   ├── helpers/                      # Browser & visual regression
+│   ├── testplan.md
+│   ├── testcase.md
+│   ├── report.md
+│   └── bug report.md
+│
+├── deploy.md                         # Panduan deploy Vercel + cPanel + Cloudflare
+└── BRD-Dashboard-Tiket-IT-Internal.md
 ```
 
 ---
@@ -204,7 +202,25 @@ it-ticket-dashboard/
 | POST | `/api/logout` | Admin | Logout, revoke token |
 | GET | `/api/tickets` | Publik | Ambil semua tiket |
 | GET | `/api/tickets/stats` | Publik | Ambil statistik dashboard |
-| POST | `/api/tickets` | Publik | Buat tiket baru (dari user/admin) |
+| POST | `/api/tickets` | Publik | Buat tiket baru |
 | GET | `/api/tickets/{id}` | Publik | Ambil detail tiket |
 | PUT | `/api/tickets/{id}` | Admin | Update tiket |
 | DELETE | `/api/tickets/{id}` | Admin | Hapus tiket |
+
+---
+
+## QA Automation
+
+Test otomatis tersedia di folder `QA/` dengan 48 test case menggunakan:
+- **Mocha** sebagai test runner
+- **Selenium WebDriver** (Chrome visible mode)
+- **Pixelmatch** untuk visual regression
+- **Allure** untuk laporan HTML
+
+```bash
+cd QA
+npm install
+npm test
+```
+
+Lihat `QA/README.md` untuk panduan lengkap.
