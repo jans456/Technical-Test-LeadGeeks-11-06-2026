@@ -1,69 +1,80 @@
+const { By, until } = require('selenium-webdriver');
+
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 class LoginPage {
-  constructor(page) {
-    this.page = page;
-    this.url  = `${BASE_URL}/login`;
-
-    this.sel = {
-      email:      'input[type="email"]',
-      password:   'input[type="password"], input[type="text"]',
-      passwordRaw: 'input[type="password"]',
-      eyeToggle:  'div.relative button[type="button"]',
-      submit:     'button[type="submit"]',
-      error:      'div.bg-red-50',
-      demoBox:    'p.text-xs.font-medium.text-gray-500',
-    };
+  constructor(driver) {
+    this.driver = driver;
+    this.url    = `${BASE_URL}/login`;
   }
 
   async navigate() {
-    await this.page.goto(this.url, { waitUntil: 'networkidle0' });
+    console.log(`    [LoginPage] navigate → ${this.url}`);
+    await this.driver.get(this.url);
+    await this.driver.wait(until.elementLocated(By.css('button[type="submit"]')), 10000);
   }
 
   async fillEmail(email) {
-    await this.page.waitForSelector(this.sel.email);
-    await this.page.click(this.sel.email, { clickCount: 3 });
-    await this.page.type(this.sel.email, email);
+    console.log(`    [LoginPage] fillEmail: ${email}`);
+    const el = await this.driver.findElement(By.css('input[type="email"]'));
+    await el.clear();
+    await el.sendKeys(email);
   }
 
   async fillPassword(password) {
-    await this.page.waitForSelector(this.sel.passwordRaw);
-    await this.page.click(this.sel.passwordRaw, { clickCount: 3 });
-    await this.page.type(this.sel.passwordRaw, password);
+    console.log(`    [LoginPage] fillPassword: ${'*'.repeat(password.length)}`);
+    const el = await this.driver.findElement(By.css('input[type="password"]'));
+    await el.clear();
+    await el.sendKeys(password);
   }
 
   async submit() {
-    await this.page.click(this.sel.submit);
+    console.log('    [LoginPage] submit');
+    await this.driver.findElement(By.css('button[type="submit"]')).click();
   }
 
   async togglePasswordVisibility() {
-    await this.page.waitForSelector(this.sel.eyeToggle);
-    await this.page.click(this.sel.eyeToggle);
+    console.log('    [LoginPage] togglePasswordVisibility');
+    await this.driver.findElement(By.css('div.relative button[type="button"]')).click();
   }
 
   async getPasswordFieldType() {
-    const input = await this.page.$('input[name="password"], div.relative input');
-    if (input) return await input.evaluate(el => el.type);
-    // Fallback: cari input di dalam div.relative
-    return await this.page.$eval('div.relative input', el => el.type);
+    const el = await this.driver.findElement(By.css('div.relative input'));
+    const type = await el.getAttribute('type');
+    console.log(`    [LoginPage] getPasswordFieldType → "${type}"`);
+    return type;
   }
 
   async getErrorText() {
     try {
-      await this.page.waitForSelector(this.sel.error, { timeout: 4000 });
-      return await this.page.$eval(this.sel.error, el => el.textContent.trim());
+      await this.driver.wait(until.elementLocated(By.css('div.bg-red-50')), 4000);
+      const el   = await this.driver.findElement(By.css('div.bg-red-50'));
+      const text = await el.getText();
+      console.log(`    [LoginPage] getErrorText → "${text}"`);
+      return text;
     } catch {
+      console.log('    [LoginPage] getErrorText → null (tidak ditemukan)');
       return null;
     }
   }
 
   async isDemoBoxVisible() {
-    const el = await this.page.$(this.sel.demoBox);
-    return el !== null;
+    try {
+      const el      = await this.driver.findElement(By.css('p.text-xs.font-medium.text-gray-500'));
+      const visible = await el.isDisplayed();
+      console.log(`    [LoginPage] isDemoBoxVisible → ${visible}`);
+      return visible;
+    } catch {
+      console.log('    [LoginPage] isDemoBoxVisible → false');
+      return false;
+    }
   }
 
   async getTitle() {
-    return await this.page.$eval('h1', el => el.textContent.trim());
+    const el    = await this.driver.findElement(By.css('h1'));
+    const title = await el.getText();
+    console.log(`    [LoginPage] getTitle → "${title}"`);
+    return title;
   }
 }
 
