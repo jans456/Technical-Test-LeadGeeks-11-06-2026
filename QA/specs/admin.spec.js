@@ -1,4 +1,4 @@
-const { expect }   = require('chai');
+﻿const { expect }   = require('chai');
 const fs           = require('fs');
 const path         = require('path');
 const { launchBrowser, closeBrowser } = require('../helpers/browser');
@@ -225,6 +225,74 @@ describe('Dashboard Admin', function () {
     const countAfter = await getTicketCount(driver);
     console.log(`    Jumlah tiket sesudah batal hapus: ${countAfter}`);
     expect(countAfter).to.equal(countBefore);
+  });
+
+  // ─── AlertModal CRUD ──────────────────────────────────────────────────────
+
+  it('AlertModal sukses muncul setelah tambah tiket baru', async function () {
+    console.log('    Submit tiket baru dan cek AlertModal...');
+    await openAddModal(driver);
+    await fillTicketModal(driver, {
+      title:          'Test AlertModal Tambah',
+      category:       'Hardware',
+      priority:       'Low',
+      status:         'Open',
+      assignedPerson: 'Tim QA Alert',
+    });
+    await submitModal(driver);
+    await adminPage.waitForAlertModal();
+    const title = await adminPage.getAlertTitle();
+    console.log(`    Judul AlertModal: "${title}"`);
+    expect(title).to.equal('Tiket Ditambahkan');
+    await adminPage.closeAlert();
+    const isStillOpen = await adminPage.isAlertModalOpen();
+    expect(isStillOpen, 'AlertModal masih tampil setelah ditutup').to.be.false;
+  });
+
+  it('AlertModal sukses muncul setelah update status tiket', async function () {
+    console.log('    Update status baris pertama ke "Done" dan cek AlertModal...');
+    await updateStatus(driver, 0, 'Done');
+    await adminPage.waitForAlertModal();
+    const title = await adminPage.getAlertTitle();
+    console.log(`    Judul AlertModal: "${title}"`);
+    expect(title).to.equal('Status Diperbarui');
+    await adminPage.closeAlert();
+  });
+
+  it('AlertModal sukses muncul setelah tiket berhasil dihapus', async function () {
+    const countBefore = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sebelum hapus: ${countBefore}`);
+    await adminPage.clickDelete(0);
+    await adminPage.confirmDelete();
+    await adminPage.waitForAlertModal();
+    const title = await adminPage.getAlertTitle();
+    console.log(`    Judul AlertModal: "${title}"`);
+    expect(title).to.equal('Tiket Dihapus');
+    await adminPage.closeAlert();
+    await adminPage.navigate();
+    const countAfter = await getTicketCount(driver);
+    console.log(`    Jumlah tiket sesudah hapus: ${countAfter}`);
+    expect(countAfter).to.equal(countBefore - 1);
+  });
+
+  it('[visual] tampilan AlertModal sukses setelah operasi CRUD', async function () {
+    console.log('    Submit tiket dan screenshot AlertModal sukses...');
+    await openAddModal(driver);
+    await fillTicketModal(driver, {
+      title:          'Test Visual AlertModal',
+      category:       'Software',
+      priority:       'High',
+      status:         'Open',
+      assignedPerson: 'Tim QA Visual',
+    });
+    await submitModal(driver);
+    await adminPage.waitForAlertModal();
+    const result = await takeAndCompare(driver, 'admin-alert-modal-sukses');
+    attachScreenshot('AlertModal Sukses', result.actualPath);
+    if (!result.isNewBaseline) {
+      expect(result.diffPercent).to.be.below(2);
+    }
+    await adminPage.closeAlert();
   });
 
   // ─── Logout ───────────────────────────────────────────────────────────────
