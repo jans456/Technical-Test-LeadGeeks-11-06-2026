@@ -1,28 +1,61 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { setToken } from '@/lib/auth';
+import AlertModal from '@/components/AlertModal';
+
+interface AlertState {
+  type: 'success' | 'error';
+  title: string;
+  message: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState<AlertState | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const showAlert = (type: AlertState['type'], title: string, message: string) =>
+    setAlert({ type, title, message });
+
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
-    setError('');
+
+    // Validasi client-side sebelum kirim ke API
+    if (!email.trim()) {
+      showAlert('error', 'Email Wajib Diisi', 'Masukkan alamat email akun admin Anda.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showAlert('error', 'Format Email Tidak Valid', 'Pastikan email memiliki format yang benar, contoh: admin@leadgeeks.com');
+      return;
+    }
+    if (!password) {
+      showAlert('error', 'Password Wajib Diisi', 'Masukkan password akun admin Anda.');
+      return;
+    }
+    if (password.length < 6) {
+      showAlert('error', 'Password Terlalu Pendek', 'Password minimal 6 karakter.');
+      return;
+    }
+
     setLoading(true);
     try {
       const { token } = await api.login(email, password);
       setToken(token);
       router.push('/admin');
     } catch {
-      setError('Email atau password salah.');
+      showAlert(
+        'error',
+        'Login Gagal',
+        'Email atau password yang Anda masukkan salah. Periksa kembali kredensial Anda.'
+      );
     } finally {
       setLoading(false);
     }
@@ -36,12 +69,6 @@ export default function LoginPage() {
           <p className="mt-1 text-sm text-gray-500">Dashboard Tiket IT Internal</p>
           <p className="mt-0.5 text-xs text-gray-400">PT Lead Geeks Indonesia</p>
         </div>
-
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -99,6 +126,15 @@ export default function LoginPage() {
           <p className="text-xs text-gray-600">Password: <span className="font-mono font-medium">admin123</span></p>
         </div>
       </div>
+
+      {alert && (
+        <AlertModal
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+        />
+      )}
     </div>
   );
 }
