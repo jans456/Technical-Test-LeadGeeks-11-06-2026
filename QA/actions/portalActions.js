@@ -1,12 +1,14 @@
 const PortalPage = require('../pageobject/PortalPage');
 
-async function navigateToPortal(page) {
-  const portalPage = new PortalPage(page);
+async function navigateToPortal(driver) {
+  console.log('  [portalActions] navigateToPortal');
+  const portalPage = new PortalPage(driver);
   await portalPage.navigate();
 }
 
-async function submitTicket(page, { name, title, category = 'Software', priority = 'Medium' }) {
-  const portalPage = new PortalPage(page);
+async function submitTicket(driver, { name, title, category = 'Software', priority = 'Medium' }) {
+  console.log(`  [portalActions] submitTicket: "${title}"`);
+  const portalPage = new PortalPage(driver);
   await portalPage.fillName(name);
   await portalPage.fillTitle(title);
   await portalPage.selectCategory(category);
@@ -14,8 +16,8 @@ async function submitTicket(page, { name, title, category = 'Software', priority
   await portalPage.submit();
 }
 
-async function getTicketCount(page) {
-  const portalPage = new PortalPage(page);
+async function getTicketCount(driver) {
+  const portalPage = new PortalPage(driver);
   return await portalPage.getTicketRowCount();
 }
 
