@@ -1,11 +1,11 @@
 ﻿'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Ticket } from '@/lib/types';
+import { Ticket, Priority } from '@/lib/types';
 
 const CATEGORIES = ['Hardware', 'Software', 'Network', 'Access', 'Other'];
-const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
+const PRIORITIES: Priority[] = ['Low', 'Medium', 'High', 'Critical'];
 
 const statusColor: Record<string, string> = {
   Open: 'bg-blue-100 text-blue-700',
@@ -21,7 +21,7 @@ const priorityColor: Record<string, string> = {
   Critical: 'bg-red-200 text-red-800 font-semibold',
 };
 
-const emptyForm = { requester_name: '', title: '', category: 'Hardware', priority: 'Low' };
+const emptyForm = { requester_name: '', title: '', category: 'Hardware', priority: 'Low' as Priority };
 
 export default function UserPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -29,12 +29,9 @@ export default function UserPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const loadTickets = useCallback(async () => {
-    const data = await api.getTickets();
-    setTickets(data);
+  useEffect(() => {
+    api.getTickets().then(setTickets);
   }, []);
-
-  useEffect(() => { loadTickets(); }, [loadTickets]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -44,24 +41,19 @@ export default function UserPage() {
         title: form.title,
         requester_name: form.requester_name,
         category: form.category,
-        priority: form.priority as 'Low' | 'Medium' | 'High' | 'Critical',
+        priority: form.priority,
         status: 'Open',
         assigned_person: 'Belum Ditugaskan',
       });
       setForm(emptyForm);
       setSubmitted(true);
-      await loadTickets();
+      const data = await api.getTickets();
+      setTickets(data);
       setTimeout(() => setSubmitted(false), 4000);
     } finally {
       setSubmitting(false);
     }
   };
-
-  const field = (key: keyof typeof emptyForm) => ({
-    value: form[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value })),
-  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,7 +77,8 @@ export default function UserPage() {
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Masukkan nama lengkap Anda"
-                {...field('requester_name')}
+                value={form.requester_name}
+                onChange={(e) => setForm((prev) => ({ ...prev, requester_name: e.target.value }))}
               />
             </div>
             <div>
@@ -94,7 +87,8 @@ export default function UserPage() {
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Deskripsikan masalah secara singkat"
-                {...field('title')}
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -103,7 +97,8 @@ export default function UserPage() {
                 <select
                   required
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  {...field('category')}
+                  value={form.category}
+                  onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
                 >
                   {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
@@ -113,7 +108,8 @@ export default function UserPage() {
                 <select
                   required
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  {...field('priority')}
+                  value={form.priority}
+                  onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value as Priority }))}
                 >
                   {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
                 </select>
