@@ -17,8 +17,9 @@
     "allure-mocha": "^2.15.0",
     "chai": "^4.4.1",
     "mocha": "^10.4.0",
+    "chromedriver": "^125.0.0",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",
-    "puppeteer": "^22.0.0"
+    "selenium-webdriver": "^4.21.0"
   }
 }
