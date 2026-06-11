@@ -1,4 +1,4 @@
-# Dokumen Kebutuhan Bisnis (BRD)
+﻿# Dokumen Kebutuhan Bisnis (BRD)
 ## Dashboard Tiket IT Internal
 ### PT Lead Geeks Indonesia
 
@@ -10,7 +10,7 @@
 |---|---|
 | Nama Proyek | Dashboard Tiket IT Internal |
 | Tipe Dokumen | Business Requirements Document (BRD) |
-| Versi | 1.0 |
+| Versi | 1.1 |
 | Tanggal | 11 Juni 2026 |
 
 ---
@@ -19,10 +19,11 @@
 
 | Layer | Teknologi |
 |---|---|
-| Backend | Laravel 11 (REST API) |
-| Frontend | Next.js 15 (React) |
+| Backend | Laravel 12 (REST API) |
+| Frontend | Next.js 16 (React + TypeScript) |
 | Database | MySQL |
 | Styling | Tailwind CSS |
+| Autentikasi | Laravel Sanctum (token-based) |
 
 ---
 
@@ -30,76 +31,93 @@
 
 | No | Batasan |
 |---|---|
-| 1 | Tidak ada fitur autentikasi / login |
-| 2 | Tidak ada manajemen pengguna atau role |
-| 3 | Tidak ada notifikasi email atau push notification |
-| 4 | Tidak ada integrasi dengan sistem eksternal |
-| 5 | Tidak ada fitur ekspor data (CSV/PDF) |
-| 6 | Tidak ada laporan atau grafik historis |
-| 7 | Hanya mengimplementasikan fitur yang tercantum pada Kebutuhan Fungsional |
-| 8 | Fitur Bonus bersifat opsional dan tidak masuk dalam scope utama |
+| 1 | Tidak ada manajemen pengguna atau role (hanya 1 akun admin) |
+| 2 | Tidak ada notifikasi email atau push notification |
+| 3 | Tidak ada integrasi dengan sistem eksternal |
+| 4 | Tidak ada fitur ekspor data (CSV/PDF) |
+| 5 | Tidak ada laporan atau grafik historis |
+| 6 | Hanya mengimplementasikan fitur yang tercantum pada Kebutuhan Fungsional |
+| 7 | Fitur Bonus bersifat opsional dan tidak masuk dalam scope utama |
 
 ---
 
 ## 4. Gambaran Umum Proyek
 
-### 2.1 Latar Belakang
+### 4.1 Latar Belakang
 PT Lead Geeks Indonesia membutuhkan sebuah sistem dashboard sederhana untuk melacak dan mengelola tiket dukungan IT internal. Sistem ini bertujuan memudahkan tim IT dalam memantau, mengelola, dan menyelesaikan laporan masalah teknis dari karyawan secara terstruktur dan efisien.
 
-### 2.2 Tujuan
+### 4.2 Tujuan
 Membangun dashboard berbasis web yang memungkinkan pengguna untuk membuat, melihat, memperbarui, dan menghapus tiket IT internal, serta menampilkan ringkasan statistik tiket secara real-time.
 
-### 2.3 Ruang Lingkup
-Sistem mencakup fitur manajemen tiket lengkap (CRUD), tampilan dashboard dengan statistik ringkas, serta antarmuka yang responsif dan mudah digunakan.
+### 4.3 Ruang Lingkup
+Sistem mencakup dua sisi:
+- **Portal User (Publik)** — karyawan membuat laporan masalah dan memantau status tiket tanpa login
+- **Dashboard Admin (Terproteksi)** — tim IT mengelola seluruh tiket dengan login menggunakan Laravel Sanctum
 
 ---
 
 ## 5. Kebutuhan Fungsional
 
-### 3.1 Manajemen Tiket
-
-Pengguna harus dapat melakukan operasi berikut terhadap tiket:
+### 5.1 Autentikasi Admin
 
 | No | Fitur | Deskripsi |
 |---|---|---|
-| F-01 | Tambah Tiket | Pengguna dapat membuat tiket baru dengan mengisi semua field yang diperlukan |
-| F-02 | Edit Tiket | Pengguna dapat mengubah informasi pada tiket yang sudah ada |
-| F-03 | Perbarui Status Tiket | Pengguna dapat mengubah status tiket tanpa harus membuka form edit penuh |
-| F-04 | Hapus Tiket | Pengguna dapat menghapus tiket dari sistem |
-| F-05 | Lihat Daftar Tiket | Pengguna dapat melihat seluruh daftar tiket yang ada dalam sistem |
+| A-01 | Login Admin | Admin login dengan email dan password; menerima token Sanctum |
+| A-02 | Validasi Client-Side | Validasi email format dan panjang password sebelum API call |
+| A-03 | Proteksi Halaman | Halaman /admin redirect ke /login jika token tidak ada |
+| A-04 | Logout | Token direvoke di server, client dihapus, redirect ke /login |
 
-### 3.2 Field Tiket yang Diperlukan
+### 5.2 Manajemen Tiket
 
-Setiap tiket harus menampilkan informasi berikut:
+| No | Fitur | Deskripsi |
+|---|---|---|
+| F-01 | Tambah Tiket | Admin membuat tiket baru dengan mengisi semua field yang diperlukan |
+| F-02 | Edit Tiket | Admin mengubah informasi pada tiket yang sudah ada |
+| F-03 | Perbarui Status Tiket | Admin mengubah status tiket langsung dari dropdown di tabel |
+| F-04 | Hapus Tiket | Admin menghapus tiket dengan konfirmasi dialog |
+| F-05 | Lihat Daftar Tiket | Admin melihat seluruh daftar tiket dalam tabel |
 
-| No | Field | Tipe Data | Keterangan |
+### 5.3 Field Tiket
+
+| No | Field | Tipe | Keterangan |
 |---|---|---|---|
-| 1 | Judul Tiket | Teks | Nama/deskripsi singkat masalah |
-| 2 | Kategori Masalah | Pilihan | Kategori jenis gangguan IT |
-| 3 | Prioritas | Pilihan | Tingkat urgensi penanganan tiket |
-| 4 | Status | Pilihan | Status penanganan tiket saat ini |
-| 5 | Penanggung Jawab | Teks | Nama staf IT yang ditugaskan |
-| 6 | Tanggal Dibuat | Tanggal | Tanggal tiket pertama kali dibuat |
+| 1 | Judul Tiket | Teks (wajib) | Deskripsi singkat masalah |
+| 2 | Nama Pelapor | Teks (opsional) | Nama karyawan yang melaporkan |
+| 3 | Kategori Masalah | Pilihan (wajib) | Hardware / Software / Network / Access / Other |
+| 4 | Prioritas | Pilihan (wajib) | Low / Medium / High / Critical |
+| 5 | Status | Pilihan (wajib) | Open / In Progress / Resolved / Closed |
+| 6 | Penanggung Jawab | Teks (wajib) | Nama staf IT yang ditugaskan |
+| 7 | Tanggal Dibuat | Timestamp (otomatis) | Dibuat oleh sistem saat tiket pertama kali disimpan |
 
-### 3.3 Pilihan Status Tiket
-
-| Status | Deskripsi |
-|---|---|
-| Terbuka (Open) | Tiket baru masuk, belum ditangani |
-| Sedang Dikerjakan (In Progress) | Tiket sedang dalam proses penanganan |
-| Selesai (Resolved) | Masalah telah diselesaikan |
-| Ditutup (Closed) | Tiket ditutup dan diarsipkan |
-
-### 3.4 Dashboard Statistik
-
-Dashboard harus menampilkan ringkasan berikut secara otomatis:
+### 5.4 Dashboard Statistik
 
 | No | Statistik | Deskripsi |
 |---|---|---|
 | D-01 | Total Tiket | Jumlah seluruh tiket dalam sistem |
-| D-02 | Tiket Terbuka | Jumlah tiket dengan status "Terbuka" |
-| D-03 | Tiket Sedang Dikerjakan | Jumlah tiket dengan status "Sedang Dikerjakan" |
-| D-04 | Tiket Prioritas Tinggi | Jumlah tiket yang ditandai dengan prioritas tinggi |
+| D-02 | Tiket Terbuka | Jumlah tiket berstatus "Open" |
+| D-03 | Tiket Sedang Dikerjakan | Jumlah tiket berstatus "In Progress" |
+| D-04 | Tiket Prioritas Tinggi | Jumlah tiket dengan prioritas "High" atau "Critical" |
+
+### 5.5 Portal User (Publik)
+
+| No | Fitur | Deskripsi |
+|---|---|---|
+| P-01 | Form Laporan Tiket | Karyawan mengisi nama, judul, kategori, dan prioritas |
+| P-02 | Submit Tiket | Tiket terkirim dengan status default "Open" |
+| P-03 | Lihat Status Tiket | Semua tiket ditampilkan dalam tabel read-only |
+| P-04 | Link ke Admin | Tombol "Login Admin" di navbar mengarah ke /login |
+
+### 5.6 Notifikasi & Feedback (AlertModal)
+
+| No | Trigger | Tipe | Pesan |
+|---|---|---|---|
+| M-01 | Login dengan email/password salah | Error | "Login Gagal" |
+| M-02 | Password kurang dari 6 karakter | Error | "Password Terlalu Pendek" |
+| M-03 | Tambah tiket berhasil | Sukses | "Tiket Ditambahkan" |
+| M-04 | Edit tiket berhasil | Sukses | "Tiket Diperbarui" |
+| M-05 | Hapus tiket berhasil | Sukses | "Tiket Dihapus" |
+| M-06 | Update status berhasil | Sukses | "Status Diperbarui" |
+| M-07 | Gagal menyimpan tiket (API error) | Error | "Gagal Menambahkan/Memperbarui Tiket" |
 
 ---
 
@@ -107,36 +125,35 @@ Dashboard harus menampilkan ringkasan berikut secara otomatis:
 
 | No | Kebutuhan | Deskripsi |
 |---|---|---|
-| NF-01 | Responsif | Tampilan menyesuaikan dengan berbagai ukuran layar (desktop, tablet, mobile) |
-| NF-02 | Hierarki Informasi yang Jelas | Tata letak terstruktur sehingga informasi mudah dipahami |
-| NF-03 | Dashboard Mudah Dibaca | Informasi ringkasan ditampilkan secara visual dan intuitif |
+| NF-01 | Responsif | Tampilan menyesuaikan desktop, tablet, dan mobile |
+| NF-02 | Keamanan | Token Sanctum disimpan di cookie dengan masa berlaku 8 jam |
+| NF-03 | Feedback Visual | Setiap aksi CRUD menampilkan AlertModal sukses atau error |
+| NF-04 | Error Recovery | Modal form tetap terbuka saat API gagal agar pengguna dapat mencoba ulang |
+| NF-05 | Hierarki Informasi | Tata letak terstruktur, informasi mudah dipahami |
 
 ---
 
 ## 7. Fitur Bonus (Opsional)
 
-Fitur-fitur berikut bersifat opsional dan tidak wajib untuk pemenuhan minimum:
-
-| No | Fitur | Deskripsi |
+| No | Fitur | Status |
 |---|---|---|
-| B-01 | Pencarian & Filter Tiket | Pengguna dapat mencari tiket berdasarkan kata kunci atau memfilter berdasarkan kategori/status/prioritas |
-| B-02 | Indikator Warna Status | Setiap status tiket ditampilkan dengan warna berbeda untuk memudahkan identifikasi cepat |
-| B-03 | Catatan / Komentar | Pengguna dapat menambahkan catatan atau komentar pada tiket |
-| B-04 | Pengurutan Data | Tiket dapat diurutkan berdasarkan status, prioritas, atau tanggal dibuat |
+| B-01 | Indikator Warna Status | Diimplementasikan — badge berwarna di tabel tiket |
+| B-02 | Update Status Inline | Diimplementasikan — dropdown langsung di baris tabel |
+| B-03 | Validasi Client-Side | Diimplementasikan — email format, panjang password |
+| B-04 | Pencarian & Filter Tiket | Belum diimplementasikan |
+| B-05 | Catatan / Komentar | Belum diimplementasikan |
+| B-06 | Pengurutan Data | Belum diimplementasikan |
 
 ---
 
 ## 8. Persyaratan Pengiriman
 
-Proyek harus dikirimkan dengan menyertakan:
+Proyek dikirimkan dengan menyertakan:
 
-1. **Tautan repositori GitHub** atau file ZIP berisi source code proyek
-2. **Tautan demo langsung** (misalnya: Netlify, Vercel, atau platform serupa)
-3. **Dokumentasi sederhana** yang mencakup:
-   - Gambaran umum proyek
-   - Teknologi yang digunakan
-   - Fitur yang diimplementasikan
-   - Panduan instalasi (jika diperlukan)
+1. **Repositori GitHub** — source code backend dan frontend
+2. **Dokumentasi** (`README.md`, `deploy.md`) — gambaran umum, instalasi, dan panduan deploy
+3. **QA Automation** — folder `QA/` berisi 48 test case otomatis (Mocha + Selenium)
+4. **Laporan QA** — `QA/report.md` dan `QA/bug report.md`
 
 ---
 
