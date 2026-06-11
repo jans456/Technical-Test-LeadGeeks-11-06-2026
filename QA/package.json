@@ -1,0 +1,24 @@
+{
+  "name": "qa-dashboard-tiket-it",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QA Visual Regression Testing - Dashboard Tiket IT Internal",
+  "scripts": {
+    "test": "mocha",
+    "test:login": "mocha specs/login.spec.js",
+    "test:admin": "mocha specs/admin.spec.js",
+    "test:portal": "mocha specs/portal.spec.js",
+    "allure:generate": "allure generate allure-results -o allure-report --clean",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "baseline:reset": "node helpers/resetBaseline.js"
+  },
+  "dependencies": {
+    "allure-mocha": "^2.15.0",
+    "chai": "^4.4.1",
+    "mocha": "^10.4.0",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^6.0.0",
+    "puppeteer": "^22.0.0"
+  }
+}
