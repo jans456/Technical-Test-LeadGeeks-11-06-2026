@@ -5,35 +5,35 @@ import { Ticket, TicketFormData } from '@/lib/types';
 
 const CATEGORIES = ['Hardware', 'Software', 'Network', 'Access', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
-const STATUSES   = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
 interface Props {
   ticket?: Ticket | null;
   onClose: () => void;
-  onSave:  (data: TicketFormData) => Promise<void>;
+  onSave: (data: TicketFormData) => Promise<void>;
 }
 
 const empty: TicketFormData = {
-  title:           '',
-  requester_name:  null,
-  category:        'Hardware',
-  priority:        'Low',
-  status:          'Open',
+  title: '',
+  requester_name: null,
+  category: 'Hardware',
+  priority: 'Low',
+  status: 'Open',
   assigned_person: '',
 };
 
 export default function TicketModal({ ticket, onClose, onSave }: Props) {
-  const [form,   setForm]   = useState<TicketFormData>(empty);
+  const [form, setForm] = useState<TicketFormData>(empty);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setForm(ticket
       ? {
-          title:           ticket.title,
-          requester_name:  ticket.requester_name,
-          category:        ticket.category,
-          priority:        ticket.priority,
-          status:          ticket.status,
+          title: ticket.title,
+          requester_name: ticket.requester_name,
+          category: ticket.category,
+          priority: ticket.priority,
+          status: ticket.status,
           assigned_person: ticket.assigned_person,
         }
       : empty
