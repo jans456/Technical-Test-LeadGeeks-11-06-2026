@@ -1,27 +1,27 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Ticket, TicketFormData, Stats, Status } from '@/lib/types';
-import StatsCard from '@/components/StatsCard';
-import TicketTable from '@/components/TicketTable';
-import TicketModal from '@/components/TicketModal';
+import StatsCard     from '@/components/StatsCard';
+import TicketTable   from '@/components/TicketTable';
+import TicketModal   from '@/components/TicketModal';
 import DeleteConfirm from '@/components/DeleteConfirm';
-import AlertModal from '@/components/AlertModal';
+import AlertModal    from '@/components/AlertModal';
 
 interface AlertState {
-  type: 'success' | 'error';
-  title: string;
+  type:    'success' | 'error';
+  title:   string;
   message: string;
 }
 
 export default function AdminPage() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, open: 0, in_progress: 0, high_priority: 0 });
-  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [tickets,        setTickets]        = useState<Ticket[]>([]);
+  const [stats,          setStats]          = useState<Stats>({ total: 0, open: 0, in_progress: 0, high_priority: 0 });
+  const [editingTicket,  setEditingTicket]  = useState<Ticket | null>(null);
   const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [alert, setAlert] = useState<AlertState | null>(null);
+  const [showAddModal,   setShowAddModal]   = useState(false);
+  const [alert,          setAlert]          = useState<AlertState | null>(null);
 
   const showAlert = (type: AlertState['type'], title: string, message: string) =>
     setAlert({ type, title, message });
@@ -60,6 +60,7 @@ export default function AdminPage() {
         isEdit ? 'Gagal Memperbarui Tiket' : 'Gagal Menambahkan Tiket',
         'Terjadi kesalahan saat menyimpan tiket. Coba lagi atau hubungi administrator.'
       );
+      throw new Error('save failed');
     }
   };
 
@@ -91,10 +92,10 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatsCard label="Total Tiket" value={stats.total} color="bg-slate-600" />
-          <StatsCard label="Tiket Terbuka" value={stats.open} color="bg-blue-600" />
+          <StatsCard label="Total Tiket"       value={stats.total}       color="bg-slate-600" />
+          <StatsCard label="Tiket Terbuka"     value={stats.open}        color="bg-blue-600"  />
           <StatsCard label="Sedang Dikerjakan" value={stats.in_progress} color="bg-yellow-500" />
-          <StatsCard label="Prioritas Tinggi" value={stats.high_priority} color="bg-red-600" />
+          <StatsCard label="Prioritas Tinggi"  value={stats.high_priority} color="bg-red-600" />
         </div>
 
         <div className="rounded-2xl bg-white p-5 shadow-sm">
