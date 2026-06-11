@@ -1,28 +1,49 @@
-const puppeteer = require('puppeteer');
+const { Builder }  = require('selenium-webdriver');
+const chrome       = require('selenium-webdriver/chrome');
+require('chromedriver');
 
-let browser = null;
+let driver = null;
 
-async function launchBrowser(options = {}) {
-  browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    ...options,
-  });
-  return browser;
+/**
+ * Luncurkan Chrome.
+ * Default: browser TERLIHAT (tidak headless) agar UI dapat dipantau saat test berjalan.
+ * Set opts.headless = true untuk mode tanpa tampilan (CI/CD).
+ */
+async function launchBrowser(opts = {}) {
+  const { headless = false } = opts;
+
+  const options = new chrome.Options();
+  options.addArguments('--no-sandbox');
+  options.addArguments('--disable-setuid-sandbox');
+  options.addArguments('--disable-dev-shm-usage');
+  options.addArguments('--window-size=1280,720');
+
+  if (headless) {
+    options.addArguments('--headless=new');
+  }
+
+  driver = await new Builder()
+    .forBrowser('chrome')
+    .setChromeOptions(options)
+    .build();
+
+  await driver.manage().window().setRect({ width: 1280, height: 720 });
+  await driver.manage().setTimeouts({ implicit: 3000, pageLoad: 30000, script: 10000 });
+
+  console.log(`[browser] Chrome diluncurkan${headless ? ' (headless)' : ' (visible — UI dapat dilihat)'}`);
+  return driver;
 }
 
-async function newPage(viewport = { width: 1280, height: 720 }) {
-  if (!browser) throw new Error('Browser belum diluncurkan. Panggil launchBrowser() terlebih dahulu.');
-  const page = await browser.newPage();
-  await page.setViewport(viewport);
-  return page;
+function getDriver() {
+  return driver;
 }
 
 async function closeBrowser() {
-  if (browser) {
-    await browser.close();
-    browser = null;
+  if (driver) {
+    await driver.quit();
+    driver = null;
+    console.log('[browser] Browser ditutup');
   }
 }
 
-module.exports = { launchBrowser, newPage, closeBrowser };
+module.exports = { launchBrowser, getDriver, closeBrowser };
