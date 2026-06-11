@@ -1,4 +1,4 @@
-const { By, until } = require('selenium-webdriver');
+﻿const { By, until } = require('selenium-webdriver');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -136,6 +136,69 @@ class AdminPage {
       if (btn) btn.click();
     `);
     await this.driver.wait(until.urlContains('/login'), 6000);
+  }
+
+  // ─── AlertModal helpers ──────────────────────────────────────────────────
+
+  async isAlertModalOpen() {
+    try {
+      const btns = await this.driver.findElements(By.css('div.fixed.inset-0.z-50 button'));
+      for (const btn of btns) {
+        const txt = await btn.getText();
+        if (txt.trim() === 'OK') {
+          console.log('    [AdminPage] isAlertModalOpen → true');
+          return true;
+        }
+      }
+      console.log('    [AdminPage] isAlertModalOpen → false');
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  async waitForAlertModal(timeout = 6000) {
+    console.log('    [AdminPage] waitForAlertModal...');
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await this.isAlertModalOpen()) return;
+      await this.driver.sleep(200);
+    }
+    throw new Error(`AlertModal tidak muncul dalam ${timeout}ms`);
+  }
+
+  async getAlertTitle() {
+    try {
+      await this.driver.wait(until.elementLocated(By.css('h2.text-center')), 5000);
+      const el   = await this.driver.findElement(By.css('h2.text-center'));
+      const text = await el.getText();
+      console.log(`    [AdminPage] getAlertTitle → "${text}"`);
+      return text;
+    } catch {
+      console.log('    [AdminPage] getAlertTitle → null');
+      return null;
+    }
+  }
+
+  async getAlertMessage() {
+    try {
+      const el   = await this.driver.findElement(By.css('p.text-center.text-sm.text-gray-500'));
+      const text = await el.getText();
+      console.log(`    [AdminPage] getAlertMessage → "${text}"`);
+      return text;
+    } catch {
+      return null;
+    }
+  }
+
+  async closeAlert() {
+    console.log('    [AdminPage] closeAlert: klik tombol OK');
+    await this.driver.executeScript(`
+      const btns = Array.from(document.querySelectorAll('div.fixed.inset-0.z-50 button'));
+      const btn  = btns.find(b => b.textContent.trim() === 'OK');
+      if (btn) btn.click();
+    `);
+    await this.driver.sleep(300);
   }
 }
 
