@@ -1,82 +1,100 @@
+const { By, until } = require('selenium-webdriver');
+
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 class PortalPage {
-  constructor(page) {
-    this.page = page;
-    this.url  = BASE_URL;
-
-    this.sel = {
-      nameInput:      'input[placeholder="Masukkan nama lengkap Anda"]',
-      titleInput:     'input[placeholder="Deskripsikan masalah secara singkat"]',
-      categorySelect: 'form select:first-of-type',
-      prioritySelect: 'form select:last-of-type',
-      submitButton:   'button[type="submit"]',
-      successMessage: 'div.bg-green-50',
-      ticketRows:     'tbody tr',
-      loginAdminBtn:  'a[href="/login"]',
-      navbarTitle:    'header h1',
-    };
+  constructor(driver) {
+    this.driver = driver;
+    this.url    = BASE_URL;
   }
 
   async navigate() {
-    await this.page.goto(this.url, { waitUntil: 'networkidle0' });
+    console.log(`    [PortalPage] navigate → ${this.url}`);
+    await this.driver.get(this.url);
+    await this.driver.wait(until.elementLocated(By.css('button[type="submit"]')), 10000);
   }
 
   async fillName(name) {
-    await this.page.waitForSelector(this.sel.nameInput);
-    await this.page.click(this.sel.nameInput, { clickCount: 3 });
-    await this.page.type(this.sel.nameInput, name);
+    console.log(`    [PortalPage] fillName: "${name}"`);
+    const el = await this.driver.findElement(By.css('input[placeholder="Masukkan nama lengkap Anda"]'));
+    await el.clear();
+    await el.sendKeys(name);
   }
 
   async fillTitle(title) {
-    await this.page.waitForSelector(this.sel.titleInput);
-    await this.page.click(this.sel.titleInput, { clickCount: 3 });
-    await this.page.type(this.sel.titleInput, title);
+    console.log(`    [PortalPage] fillTitle: "${title}"`);
+    const el = await this.driver.findElement(By.css('input[placeholder="Deskripsikan masalah secara singkat"]'));
+    await el.clear();
+    await el.sendKeys(title);
   }
 
   async selectCategory(category) {
-    await this.page.select(this.sel.categorySelect, category);
+    console.log(`    [PortalPage] selectCategory: "${category}"`);
+    const selects = await this.driver.findElements(By.css('form select'));
+    if (selects[0]) await selects[0].sendKeys(category);
   }
 
   async selectPriority(priority) {
-    await this.page.select(this.sel.prioritySelect, priority);
+    console.log(`    [PortalPage] selectPriority: "${priority}"`);
+    const selects = await this.driver.findElements(By.css('form select'));
+    if (selects[1]) await selects[1].sendKeys(priority);
   }
 
   async submit() {
-    await this.page.click(this.sel.submitButton);
+    console.log('    [PortalPage] submit');
+    await this.driver.findElement(By.css('button[type="submit"]')).click();
   }
 
   async isSuccessMessageVisible() {
     try {
-      await this.page.waitForSelector(this.sel.successMessage, { timeout: 5000 });
-      return true;
+      await this.driver.wait(until.elementLocated(By.css('div.bg-green-50')), 5000);
+      const el      = await this.driver.findElement(By.css('div.bg-green-50'));
+      const visible = await el.isDisplayed();
+      console.log(`    [PortalPage] isSuccessMessageVisible → ${visible}`);
+      return visible;
     } catch {
+      console.log('    [PortalPage] isSuccessMessageVisible → false');
       return false;
     }
   }
 
   async getTicketRowCount() {
     try {
-      await this.page.waitForSelector(this.sel.ticketRows, { timeout: 5000 });
-      return await this.page.$$eval(this.sel.ticketRows, rows => rows.length);
+      await this.driver.wait(until.elementLocated(By.css('tbody tr')), 5000);
+      const rows  = await this.driver.findElements(By.css('tbody tr'));
+      console.log(`    [PortalPage] getTicketRowCount → ${rows.length}`);
+      return rows.length;
     } catch {
+      console.log('    [PortalPage] getTicketRowCount → 0');
       return 0;
     }
   }
 
   async isLoginAdminButtonVisible() {
-    const el = await this.page.$(this.sel.loginAdminBtn);
-    return el !== null;
+    try {
+      const el      = await this.driver.findElement(By.css('a[href="/login"]'));
+      const visible = await el.isDisplayed();
+      console.log(`    [PortalPage] isLoginAdminButtonVisible → ${visible}`);
+      return visible;
+    } catch {
+      console.log('    [PortalPage] isLoginAdminButtonVisible → false');
+      return false;
+    }
   }
 
   async hasEditOrDeleteButtons() {
-    const editBtns   = await this.page.$$('tbody tr button.text-blue-600');
-    const deleteBtns = await this.page.$$('tbody tr button.text-red-500');
-    return editBtns.length > 0 || deleteBtns.length > 0;
+    const editBtns   = await this.driver.findElements(By.css('tbody tr button.text-blue-600'));
+    const deleteBtns = await this.driver.findElements(By.css('tbody tr button.text-red-500'));
+    const has        = editBtns.length > 0 || deleteBtns.length > 0;
+    console.log(`    [PortalPage] hasEditOrDeleteButtons → ${has}`);
+    return has;
   }
 
   async getNavbarTitle() {
-    return await this.page.$eval(this.sel.navbarTitle, el => el.textContent.trim());
+    const el    = await this.driver.findElement(By.css('header h1'));
+    const title = await el.getText();
+    console.log(`    [PortalPage] getNavbarTitle → "${title}"`);
+    return title;
   }
 }
 
