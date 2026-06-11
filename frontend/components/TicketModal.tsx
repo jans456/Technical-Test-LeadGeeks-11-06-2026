@@ -1,11 +1,11 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
-import { Ticket, TicketFormData } from '@/lib/types';
+import { useState } from 'react';
+import { Ticket, TicketFormData, Priority, Status } from '@/lib/types';
 
 const CATEGORIES = ['Hardware', 'Software', 'Network', 'Access', 'Other'];
-const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
-const STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const PRIORITIES: Priority[] = ['Low', 'Medium', 'High', 'Critical'];
+const STATUSES: Status[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
 interface Props {
   ticket?: Ticket | null;
@@ -23,11 +23,8 @@ const empty: TicketFormData = {
 };
 
 export default function TicketModal({ ticket, onClose, onSave }: Props) {
-  const [form, setForm] = useState<TicketFormData>(empty);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setForm(ticket
+  const [form, setForm] = useState<TicketFormData>(() =>
+    ticket
       ? {
           title: ticket.title,
           requester_name: ticket.requester_name,
@@ -37,8 +34,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
           assigned_person: ticket.assigned_person,
         }
       : empty
-    );
-  }, [ticket]);
+  );
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -51,12 +48,6 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
       setSaving(false);
     }
   };
-
-  const field = (key: keyof TicketFormData) => ({
-    value: (form[key] ?? '') as string,
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value })),
-  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -80,7 +71,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
               required
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Masukkan judul tiket"
-              {...field('title')}
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -89,7 +81,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
               <select
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...field('category')}
+                value={form.category}
+                onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
               >
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
@@ -99,7 +92,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
               <select
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...field('priority')}
+                value={form.priority}
+                onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value as Priority }))}
               >
                 {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
               </select>
@@ -110,7 +104,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
             <select
               required
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...field('status')}
+              value={form.status}
+              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as Status }))}
             >
               {STATUSES.map((s) => <option key={s}>{s}</option>)}
             </select>
@@ -121,7 +116,8 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
               required
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nama staf IT"
-              {...field('assigned_person')}
+              value={form.assigned_person}
+              onChange={(e) => setForm((prev) => ({ ...prev, assigned_person: e.target.value }))}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
