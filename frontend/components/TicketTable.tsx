@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import { useState } from 'react';
 import { Ticket, Status } from '@/lib/types';
 
 const STATUSES: Status[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
@@ -26,6 +27,18 @@ interface Props {
 }
 
 export default function TicketTable({ tickets, onEdit, onDelete, onStatusChange }: Props) {
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const handleStatusChange = async (ticket: Ticket, status: Status) => {
+    if (updatingId !== null) return;
+    setUpdatingId(ticket.id);
+    try {
+      await onStatusChange(ticket, status);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   if (tickets.length === 0) {
     return (
       <div className="py-16 text-center text-gray-400">Belum ada tiket. Tambahkan tiket pertama.</div>
@@ -50,7 +63,9 @@ export default function TicketTable({ tickets, onEdit, onDelete, onStatusChange 
         <tbody className="divide-y divide-gray-100">
           {tickets.map((t) => (
             <tr key={t.id} className="hover:bg-gray-50">
-              <td className="py-3 pr-4 font-medium text-gray-800">{t.title}</td>
+              <td className="py-3 pr-4 max-w-xs truncate font-medium text-gray-800" title={t.title}>
+                {t.title}
+              </td>
               <td className="py-3 pr-4 text-gray-500">{t.requester_name ?? '-'}</td>
               <td className="py-3 pr-4 text-gray-600">{t.category}</td>
               <td className="py-3 pr-4">
@@ -61,8 +76,9 @@ export default function TicketTable({ tickets, onEdit, onDelete, onStatusChange 
               <td className="py-3 pr-4">
                 <select
                   value={t.status}
-                  onChange={(e) => onStatusChange(t, e.target.value as Status)}
-                  className={`rounded-full px-2.5 py-0.5 text-xs border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${statusColor[t.status]}`}
+                  disabled={updatingId === t.id}
+                  onChange={(e) => handleStatusChange(t, e.target.value as Status)}
+                  className={`rounded-full px-2.5 py-0.5 text-xs border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed ${statusColor[t.status]}`}
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>{s}</option>
