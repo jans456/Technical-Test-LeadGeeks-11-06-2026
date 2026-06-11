@@ -1,4 +1,4 @@
-const { expect }   = require('chai');
+﻿const { expect }   = require('chai');
 const fs           = require('fs');
 const path         = require('path');
 const { launchBrowser, closeBrowser } = require('../helpers/browser');
@@ -114,24 +114,48 @@ describe('Login Admin', function () {
     }
   });
 
-  // ─── Login Invalid ─────────────────────────────────────────────────────────
+  // ─── AlertModal — Validasi Login ──────────────────────────────────────────
 
-  it('login dengan kredensial salah menampilkan pesan error', async function () {
+  it('login dengan kredensial salah menampilkan AlertModal "Login Gagal"', async function () {
     console.log('    Mencoba login dengan kredensial salah...');
     await loginWithInvalidCredentials(driver);
-    const error = await loginPage.getErrorText();
-    expect(error, 'Pesan error tidak muncul').to.not.be.null;
-    expect(error).to.include('salah');
+    const title = await loginPage.getAlertTitle();
+    console.log(`    Judul AlertModal: "${title}"`);
+    expect(title, 'AlertModal error tidak muncul').to.not.be.null;
+    expect(title).to.equal('Login Gagal');
+    const msg = await loginPage.getAlertMessage();
+    expect(msg).to.include('salah');
   });
 
-  it('[visual] tampilan halaman setelah error login', async function () {
+  it('[visual] tampilan AlertModal error setelah login gagal', async function () {
     await loginWithInvalidCredentials(driver);
-    await loginPage.getErrorText();
+    await loginPage.getAlertTitle();
     const result = await takeAndCompare(driver, 'login-error-state');
-    attachScreenshot('Login Error', result.actualPath);
+    attachScreenshot('Login Error AlertModal', result.actualPath);
     if (!result.isNewBaseline) {
       expect(result.diffPercent).to.be.below(2);
     }
+  });
+
+  it('password terlalu pendek (< 6 karakter) menampilkan AlertModal validasi', async function () {
+    console.log('    Mengisi email valid dan password 3 karakter...');
+    await loginPage.fillEmail('admin@leadgeeks.com');
+    await loginPage.fillPassword('abc');
+    await loginPage.submit();
+    const title = await loginPage.getAlertTitle();
+    console.log(`    Judul AlertModal: "${title}"`);
+    expect(title).to.equal('Password Terlalu Pendek');
+  });
+
+  it('AlertModal validasi dapat ditutup dengan tombol OK', async function () {
+    console.log('    Memunculkan AlertModal lalu menutupnya...');
+    await loginPage.fillEmail('admin@leadgeeks.com');
+    await loginPage.fillPassword('abc');
+    await loginPage.submit();
+    await loginPage.getAlertTitle();
+    await loginPage.closeAlert();
+    const isVisible = await loginPage.isAlertVisible();
+    expect(isVisible, 'AlertModal masih tampil setelah tombol OK diklik').to.be.false;
   });
 
   // ─── Login Berhasil ────────────────────────────────────────────────────────
