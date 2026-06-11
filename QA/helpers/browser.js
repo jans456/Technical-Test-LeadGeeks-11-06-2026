@@ -10,7 +10,7 @@ let driver = null;
  * Set opts.headless = true untuk mode tanpa tampilan (CI/CD).
  */
 async function launchBrowser(opts = {}) {
-  const { headless = false } = opts;
+  const { headless = process.env.HEADLESS === 'true' } = opts;
 
   const options = new chrome.Options();
   options.addArguments('--no-sandbox');
