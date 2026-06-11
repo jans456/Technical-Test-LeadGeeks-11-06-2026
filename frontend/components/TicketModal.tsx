@@ -47,7 +47,6 @@ export default function TicketModal({ ticket, onClose, onSave }: Props) {
       await onSave(form);
       onClose();
     } catch {
-      // onSave threw (API error already shown via AlertModal) — keep modal open for retry
     } finally {
       setSaving(false);
     }
