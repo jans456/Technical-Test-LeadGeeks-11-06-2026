@@ -1,134 +1,141 @@
+const { By, until } = require('selenium-webdriver');
+
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 class AdminPage {
-  constructor(page) {
-    this.page = page;
-    this.url  = `${BASE_URL}/admin`;
-
-    this.sel = {
-      statsCards:      'div.rounded-xl.p-5.text-white',
-      addButton:       'button.bg-blue-600',
-      table:           'table',
-      ticketRows:      'tbody tr',
-      statusDropdown:  'tbody tr select',
-      editButton:      'tbody tr button.text-blue-600',
-      deleteButton:    'tbody tr button.text-red-500',
-      modal:           'div.fixed.inset-0.z-50',
-      modalTitle:      'div.fixed.inset-0.z-50 h2',
-      logoutButton:    'button.border-gray-300',
-      navbarTitle:     'header h1',
-    };
+  constructor(driver) {
+    this.driver = driver;
+    this.url    = `${BASE_URL}/admin`;
   }
 
   async navigate() {
-    await this.page.goto(this.url, { waitUntil: 'networkidle0' });
+    console.log(`    [AdminPage] navigate → ${this.url}`);
+    await this.driver.get(this.url);
+    await this.driver.wait(until.elementLocated(By.css('div.rounded-xl.p-5.text-white')), 10000);
   }
 
   async getStatsCardCount() {
-    await this.page.waitForSelector(this.sel.statsCards, { timeout: 5000 });
-    return await this.page.$$eval(this.sel.statsCards, els => els.length);
+    const cards = await this.driver.findElements(By.css('div.rounded-xl.p-5.text-white'));
+    console.log(`    [AdminPage] getStatsCardCount → ${cards.length}`);
+    return cards.length;
   }
 
   async getStatsValues() {
-    await this.page.waitForSelector(this.sel.statsCards);
-    return await this.page.$$eval(this.sel.statsCards, cards =>
-      cards.map(card => ({
-        label: card.querySelector('p:first-child')?.textContent.trim(),
-        value: parseInt(card.querySelector('p:last-child')?.textContent.trim(), 10),
-      }))
-    );
+    const cards  = await this.driver.findElements(By.css('div.rounded-xl.p-5.text-white'));
+    const result = [];
+    for (const card of cards) {
+      const ps    = await card.findElements(By.css('p'));
+      const label = ps[0] ? await ps[0].getText() : '';
+      const value = ps[1] ? parseInt(await ps[1].getText(), 10) : 0;
+      result.push({ label, value });
+    }
+    console.log(`    [AdminPage] getStatsValues → ${JSON.stringify(result)}`);
+    return result;
   }
 
   async getTicketRowCount() {
     try {
-      await this.page.waitForSelector(this.sel.ticketRows, { timeout: 5000 });
-      return await this.page.$$eval(this.sel.ticketRows, rows => rows.length);
+      await this.driver.wait(until.elementLocated(By.css('tbody tr')), 5000);
+      const rows  = await this.driver.findElements(By.css('tbody tr'));
+      console.log(`    [AdminPage] getTicketRowCount → ${rows.length}`);
+      return rows.length;
     } catch {
+      console.log('    [AdminPage] getTicketRowCount → 0 (tabel kosong)');
       return 0;
     }
   }
 
   async clickAddTicket() {
-    // Cari tombol "+ Tambah Tiket" berdasarkan teks
-    await this.page.evaluate(() => {
+    console.log('    [AdminPage] clickAddTicket');
+    await this.driver.executeScript(`
       const btns = Array.from(document.querySelectorAll('button'));
-      const btn = btns.find(b => b.textContent.trim().includes('Tambah Tiket'));
+      const btn  = btns.find(b => b.textContent.trim().includes('Tambah Tiket'));
       if (btn) btn.click();
-    });
-    await this.page.waitForTimeout(400);
+    `);
+    await this.driver.sleep(400);
   }
 
   async isModalOpen() {
-    return await this.page.evaluate(() => {
-      const modal = document.querySelector('div.fixed.inset-0.z-50');
-      return modal !== null;
-    });
+    const modals = await this.driver.findElements(By.css('div.fixed.inset-0.z-50'));
+    const open   = modals.length > 0;
+    console.log(`    [AdminPage] isModalOpen → ${open}`);
+    return open;
   }
 
   async getModalTitle() {
     try {
-      await this.page.waitForSelector(this.sel.modalTitle, { timeout: 3000 });
-      return await this.page.$eval(this.sel.modalTitle, el => el.textContent.trim());
+      await this.driver.wait(until.elementLocated(By.css('div.fixed.inset-0.z-50 h2')), 3000);
+      const el    = await this.driver.findElement(By.css('div.fixed.inset-0.z-50 h2'));
+      const title = await el.getText();
+      console.log(`    [AdminPage] getModalTitle → "${title}"`);
+      return title;
     } catch {
       return null;
     }
   }
 
-  async closeModalWithEsc() {
-    await this.page.keyboard.press('Escape');
-    await this.page.waitForTimeout(300);
-  }
-
   async getStatusDropdownValue(rowIndex = 0) {
-    const dropdowns = await this.page.$$(this.sel.statusDropdown);
+    const dropdowns = await this.driver.findElements(By.css('tbody tr select'));
     if (!dropdowns[rowIndex]) return null;
-    return await dropdowns[rowIndex].evaluate(el => el.value);
+    const value = await dropdowns[rowIndex].getAttribute('value');
+    console.log(`    [AdminPage] getStatusDropdownValue[${rowIndex}] → "${value}"`);
+    return value;
   }
 
   async setStatusDropdown(rowIndex, status) {
-    const dropdowns = await this.page.$$(this.sel.statusDropdown);
-    if (dropdowns[rowIndex]) await dropdowns[rowIndex].select(status);
-    await this.page.waitForTimeout(600);
+    console.log(`    [AdminPage] setStatusDropdown[${rowIndex}] → "${status}"`);
+    const dropdowns = await this.driver.findElements(By.css('tbody tr select'));
+    if (!dropdowns[rowIndex]) return;
+    await this.driver.executeScript(
+      `arguments[0].value = arguments[1];
+       arguments[0].dispatchEvent(new Event('change', { bubbles: true }));`,
+      dropdowns[rowIndex], status
+    );
+    await this.driver.sleep(600);
   }
 
   async clickEdit(rowIndex = 0) {
-    const buttons = await this.page.$$(this.sel.editButton);
-    if (buttons[rowIndex]) await buttons[rowIndex].click();
-    await this.page.waitForTimeout(400);
+    console.log(`    [AdminPage] clickEdit[${rowIndex}]`);
+    const btns = await this.driver.findElements(By.css('tbody tr button.text-blue-600'));
+    if (btns[rowIndex]) await btns[rowIndex].click();
+    await this.driver.sleep(400);
   }
 
   async clickDelete(rowIndex = 0) {
-    const buttons = await this.page.$$(this.sel.deleteButton);
-    if (buttons[rowIndex]) await buttons[rowIndex].click();
-    await this.page.waitForTimeout(400);
+    console.log(`    [AdminPage] clickDelete[${rowIndex}]`);
+    const btns = await this.driver.findElements(By.css('tbody tr button.text-red-500'));
+    if (btns[rowIndex]) await btns[rowIndex].click();
+    await this.driver.sleep(400);
   }
 
   async confirmDelete() {
-    // Tombol "Hapus" merah di dalam DeleteConfirm modal
-    await this.page.evaluate(() => {
+    console.log('    [AdminPage] confirmDelete');
+    await this.driver.executeScript(`
       const btns = Array.from(document.querySelectorAll('button'));
-      const btn = btns.find(b => b.classList.contains('bg-red-600') && b.textContent.trim().includes('Hapus'));
+      const btn  = btns.find(b => b.classList.contains('bg-red-600') && b.textContent.trim().includes('Hapus'));
       if (btn) btn.click();
-    });
-    await this.page.waitForTimeout(1000);
+    `);
+    await this.driver.sleep(1000);
   }
 
   async cancelDelete() {
-    await this.page.evaluate(() => {
+    console.log('    [AdminPage] cancelDelete');
+    await this.driver.executeScript(`
       const btns = Array.from(document.querySelectorAll('button'));
-      const btn = btns.find(b => b.textContent.trim() === 'Batal');
+      const btn  = btns.find(b => b.textContent.trim() === 'Batal');
       if (btn) btn.click();
-    });
-    await this.page.waitForTimeout(300);
+    `);
+    await this.driver.sleep(300);
   }
 
   async logout() {
-    await this.page.evaluate(() => {
+    console.log('    [AdminPage] logout');
+    await this.driver.executeScript(`
       const btns = Array.from(document.querySelectorAll('button'));
-      const btn = btns.find(b => b.textContent.trim() === 'Logout');
+      const btn  = btns.find(b => b.textContent.trim() === 'Logout');
       if (btn) btn.click();
-    });
-    await this.page.waitForNavigation({ timeout: 6000 }).catch(() => {});
+    `);
+    await this.driver.wait(until.urlContains('/login'), 6000);
   }
 }
 
