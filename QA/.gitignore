@@ -7,3 +7,4 @@ screenshots/diff/*
 screenshots/failures/*
 !screenshots/failures/.gitkeep
 allure-report/
+allure-results/
