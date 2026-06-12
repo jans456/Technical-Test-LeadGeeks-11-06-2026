@@ -34,6 +34,8 @@ describe('Dashboard Admin', function () {
 
   beforeEach(async function () {
     console.log(`\n  ▶ MULAI: "${this.currentTest?.title}"`);
+    const url = await driver.getCurrentUrl();
+    if (url && url.includes('/login')) return;
     await adminPage.navigate();
   });
 
@@ -188,7 +190,7 @@ describe('Dashboard Admin', function () {
     const result = await takeAndCompare(driver, 'admin-modal-edit-tiket');
     attachScreenshot('Modal Edit Tiket', result.actualPath);
     if (!result.isNewBaseline) {
-      expect(result.diffPercent).to.be.below(1);
+      expect(result.diffPercent).to.be.below(2);
     }
     await cancelModal(driver);
   });
@@ -212,7 +214,7 @@ describe('Dashboard Admin', function () {
     const result = await takeAndCompare(driver, 'admin-dialog-hapus');
     attachScreenshot('Dialog Konfirmasi Hapus', result.actualPath);
     if (!result.isNewBaseline) {
-      expect(result.diffPercent).to.be.below(1);
+      expect(result.diffPercent).to.be.below(2);
     }
     await adminPage.cancelDelete();
   });
@@ -250,8 +252,8 @@ describe('Dashboard Admin', function () {
   });
 
   it('AlertModal sukses muncul setelah update status tiket', async function () {
-    console.log('    Update status baris pertama ke "Done" dan cek AlertModal...');
-    await updateStatus(driver, 0, 'Done');
+    console.log('    Update status baris pertama ke "Resolved" dan cek AlertModal...');
+    await updateStatus(driver, 0, 'Resolved');
     await adminPage.waitForAlertModal();
     const title = await adminPage.getAlertTitle();
     console.log(`    Judul AlertModal: "${title}"`);

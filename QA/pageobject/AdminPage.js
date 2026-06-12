@@ -12,6 +12,7 @@ class AdminPage {
     console.log(`    [AdminPage] navigate → ${this.url}`);
     await this.driver.get(this.url);
     await this.driver.wait(until.elementLocated(By.css('div.rounded-xl.p-5.text-white')), 10000);
+    await this.driver.wait(until.elementLocated(By.css('tbody tr')), 8000).catch(() => {});
   }
 
   async getStatsCardCount() {
@@ -77,7 +78,7 @@ class AdminPage {
   async getStatusDropdownValue(rowIndex = 0) {
     const dropdowns = await this.driver.findElements(By.css('tbody tr select'));
     if (!dropdowns[rowIndex]) return null;
-    const value = await dropdowns[rowIndex].getAttribute('value');
+    const value = await this.driver.executeScript('return arguments[0].value', dropdowns[rowIndex]);
     console.log(`    [AdminPage] getStatusDropdownValue[${rowIndex}] → "${value}"`);
     return value;
   }
@@ -86,23 +87,26 @@ class AdminPage {
     console.log(`    [AdminPage] setStatusDropdown[${rowIndex}] → "${status}"`);
     const dropdowns = await this.driver.findElements(By.css('tbody tr select'));
     if (!dropdowns[rowIndex]) return;
-    await this.driver.executeScript(
-      `arguments[0].value = arguments[1];
-       arguments[0].dispatchEvent(new Event('change', { bubbles: true }));`,
-      dropdowns[rowIndex], status
-    );
-    await this.driver.sleep(600);
+    await this.driver.executeScript(`
+      var setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+      setter.call(arguments[0], arguments[1]);
+      arguments[0].dispatchEvent(new Event('input',  { bubbles: true }));
+      arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+    `, dropdowns[rowIndex], status);
+    await this.driver.sleep(3500);
   }
 
   async clickEdit(rowIndex = 0) {
     console.log(`    [AdminPage] clickEdit[${rowIndex}]`);
+    await this.driver.wait(until.elementLocated(By.css('tbody tr')), 5000);
     const btns = await this.driver.findElements(By.css('tbody tr button.text-blue-600'));
     if (btns[rowIndex]) await btns[rowIndex].click();
-    await this.driver.sleep(400);
+    await this.driver.sleep(700);
   }
 
   async clickDelete(rowIndex = 0) {
     console.log(`    [AdminPage] clickDelete[${rowIndex}]`);
+    await this.driver.wait(until.elementLocated(By.css('tbody tr')), 5000);
     const btns = await this.driver.findElements(By.css('tbody tr button.text-red-500'));
     if (btns[rowIndex]) await btns[rowIndex].click();
     await this.driver.sleep(400);
